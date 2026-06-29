@@ -221,4 +221,4 @@ async def get_yearly_data():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=18000)
+    uvicorn.run(app, host="0.0.0.0", port=12371)
