@@ -90,7 +90,7 @@
 
         .section-header {
             text-align: center;
-            margin: 30px 0 20px;
+            margin: 20px 0 15px; /* 减小间距 */
             position: relative;
         }
 
@@ -167,42 +167,51 @@
             font-weight: normal;
         }
 
-        .yearly-list-container {
-            margin-top: 40px;
+        .timeline-container, .yearly-list-container {
             background-color: var(--card-bg);
             border-radius: 8px;
             box-shadow: var(--shadow);
-            overflow-x: auto;
             border: 1px solid var(--border-color);
+            overflow: auto;
+            position: relative;
         }
 
         .timeline-container {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-            overflow-x: auto;
-            border: 1px solid var(--border-color);
+            max-height: 250px; /* 详情明细也增加限制，节省空间 */
+            margin-bottom: 10px;
+        }
+
+        .yearly-list-container {
+            max-height: 320px; /* 本年列表高度 */
+        }
+
+        /* 固定表头 */
+        table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f8f9fb;
+            box-shadow: inset 0 -1px 0 var(--border-color);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.85rem;
-            min-width: 1500px;
+            min-width: 1200px;
         }
 
         th {
-            background-color: #f8f9fb;
             color: var(--text-secondary);
             font-weight: 600;
-            padding: 12px 8px;
+            padding: 10px 8px;
             text-align: center;
             border: 1px solid var(--border-color);
             white-space: nowrap;
         }
 
         td {
-            padding: 12px 8px;
+            padding: 8px 8px;
             border: 1px solid var(--border-color);
             color: var(--text-primary);
             text-align: center;
@@ -214,7 +223,7 @@
 
         .status-pill {
             display: inline-block;
-            padding: 4px 8px;
+            padding: 2px 6px;
             border-radius: 4px;
             font-size: 0.75rem;
             font-weight: 500;
@@ -238,7 +247,7 @@
 
         .empty-state {
             text-align: center;
-            padding: 100px 20px;
+            padding: 60px 20px;
             background-color: var(--card-bg);
             border-radius: 8px;
             border: 1px dashed var(--border-color);
@@ -247,23 +256,28 @@
 
         .loading {
             text-align: center;
-            padding: 50px;
+            padding: 30px;
             color: var(--accent-blue);
         }
 
         .error-message {
             color: var(--accent-red);
-            padding: 20px;
+            padding: 15px;
             text-align: center;
             background: #fff;
             border: 1px solid var(--accent-red);
             border-radius: 8px;
-            margin: 20px 0;
+            margin: 10px 0;
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 1400px) {
             .cards-grid {
                 grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+            .card {
+                min-height: 110px;
+                padding: 15px 10px;
             }
         }
 
@@ -272,7 +286,7 @@
                 grid-template-columns: repeat(2, 1fr);
             }
             .card-value {
-                font-size: 1.8rem;
+                font-size: 1.6rem;
             }
         }
     </style>
@@ -323,6 +337,7 @@
                     <thead>
                         <tr>
                             <th rowspan="2">项目号</th>
+                            <th rowspan="2">项目简称</th>
                             <th rowspan="2">车号</th>
                             <th rowspan="2">节车号</th>
                             <th colspan="2">进车</th>

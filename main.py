@@ -18,11 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-CH_HOST = os.getenv("CLICKHOUSE_HOST", "localhost")
-CH_PORT = int(os.getenv("CLICKHOUSE_PORT", "9000"))
-CH_USER = os.getenv("CLICKHOUSE_USER", "default")
-CH_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "123")
-CH_DATABASE = os.getenv("CLICKHOUSE_DATABASE", "default")
+CH_HOST = os.getenv("CLICKHOUSE_HOST", "localhost")#10.24.5.59
+CH_PORT = int(os.getenv("CLICKHOUSE_PORT", "9000"))#8123
+CH_USER = os.getenv("CLICKHOUSE_USER", "default")#cheakf
+CH_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "123")#Swq8855830.
+CH_DATABASE = os.getenv("CLICKHOUSE_DATABASE", "default")#dwd
 
 
 def get_clickhouse_client():
