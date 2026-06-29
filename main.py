@@ -71,7 +71,7 @@ async def get_projects() -> list[str]:
     try:
         client = get_clickhouse_client()
         # 将项目号筛选改为项目简称
-        result = client.query_dataframe("SELECT DISTINCT `项目简称` FROM manufacturing_cycle ORDER BY `项目简称`")
+        result = client.query_dataframe("SELECT DISTINCT `项目简称` FROM dwd.manufacturing_cycle ORDER BY `项目简称`")
         return [str(row['项目简称']) for _, row in result.iterrows()]
     except Exception as e:
         print(f"Error in get_projects: {e}")
@@ -86,7 +86,7 @@ async def get_cars(project_abbr: str = Query(..., alias="project_id")) -> list[s
     try:
         client = get_clickhouse_client()
         result = client.query_dataframe(
-            "SELECT DISTINCT `车号` FROM manufacturing_cycle WHERE `项目简称` = %(pabbr)s ORDER BY `车号`",
+            "SELECT DISTINCT `车号` FROM dwd.manufacturing_cycle WHERE `项目简称` = %(pabbr)s ORDER BY `车号`",
             {'pabbr': project_abbr}
         )
         return [str(row['车号']) for _, row in result.iterrows()]
@@ -103,7 +103,7 @@ async def get_sections(project_abbr: str = Query(..., alias="project_id"), car_i
     try:
         client = get_clickhouse_client()
         result = client.query_dataframe(
-            "SELECT DISTINCT `节车号` FROM manufacturing_cycle WHERE `项目简称` = %(pabbr)s AND `车号` = %(cid)s ORDER BY `节车号`",
+            "SELECT DISTINCT `节车号` FROM dwd.manufacturing_cycle WHERE `项目简称` = %(pabbr)s AND `车号` = %(cid)s ORDER BY `节车号`",
             {'pabbr': project_abbr, 'cid': car_id}
         )
         return [str(row['车号']) for _, row in result.iterrows()]
@@ -134,8 +134,8 @@ async def get_data(
                 `连接计划开始`, `连接实际开始`,
                 `Q40计划开始`, `Q40实际开始`,
                 `发运计划开始`, `发运实际开始`,
-                `组装周期天`, `落车周期天`, `调试周期天`, `交付周期天`, `整个制造周期天`
-            FROM manufacturing_cycle
+                `组装周期_天`, `落车周期_天`, `调试周期_天`, `交付周期_天`, `整个制造周期_天`
+            FROM dwd.manufacturing_cycle
             WHERE `项目简称` = %(pabbr)s AND `车号` = %(cid)s AND `节车号` = %(sid)s
             LIMIT 1
             """,
@@ -164,11 +164,11 @@ async def get_data(
             Q40实际开始=result['Q40实际开始'][0],
             发运计划开始=result['发运计划开始'][0],
             发运实际开始=result['发运实际开始'][0],
-            组装周期天=result['组装周期天'][0],
-            落车周期天=result['落车周期天'][0],
-            调试周期天=result['调试周期天'][0],
-            交付周期天=result['交付周期天'][0],
-            整个制造周期天=result['整个制造周期天'][0]
+            组装周期天=result['组装周期_天'][0],
+            落车周期天=result['落车周期_天'][0],
+            调试周期天=result['调试周期_天'][0],
+            交付周期天=result['交付周期_天'][0],
+            整个制造周期天=result['整个制造周期_天'][0]
         )
     except HTTPException:
         raise
@@ -189,8 +189,8 @@ async def get_yearly_data():
             """
             SELECT
                 `项目号`, `项目简称`, `车号`, `节车号`,
-                `组装周期天`, `落车周期天`, `调试周期天`, `交付周期天`, `整个制造周期天`
-            FROM manufacturing_cycle
+                `组装周期_天`, `落车周期_天`, `调试周期_天`, `交付周期_天`, `整个制造周期_天`
+            FROM dwd.manufacturing_cycle
             WHERE 
                 toYear(`最早计划开始`) = toYear(now())
                 OR 
@@ -204,11 +204,11 @@ async def get_yearly_data():
                 "项目简称": row['项目简称'],
                 "车号": row['车号'],
                 "节车号": row['节车号'],
-                "组装周期天": row['组装周期天'],
-                "落车周期天": row['落车周期天'],
-                "调试周期天": row['调试周期天'],
-                "交付周期天": row['交付周期天'],
-                "整个制造周期天": row['整个制造周期天']
+                "组装周期天": row['组装周期_天'],
+                "落车周期天": row['落车周期_天'],
+                "调试周期天": row['调试周期_天'],
+                "交付周期天": row['交付周期_天'],
+                "整个制造周期天": row['整个制造周期_天']
             } for _, row in result.iterrows()
         ]
     except Exception as e:
