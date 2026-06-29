@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
 from clickhouse_driver import Client
 import os
@@ -18,11 +17,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-CH_HOST = os.getenv("CLICKHOUSE_HOST", "localhost")#10.24.5.59
-CH_PORT = int(os.getenv("CLICKHOUSE_PORT", "9000"))#8123
-CH_USER = os.getenv("CLICKHOUSE_USER", "default")#cheakf
-CH_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "123")#Swq8855830.
-CH_DATABASE = os.getenv("CLICKHOUSE_DATABASE", "default")#dwd
+CH_HOST = os.getenv("CLICKHOUSE_HOST", "10.24.5.59")
+CH_PORT = int(os.getenv("CLICKHOUSE_PORT", "9000"))
+CH_USER = os.getenv("CLICKHOUSE_USER", "cheakf")
+CH_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "Swq8855830.")
+CH_DATABASE = os.getenv("CLICKHOUSE_DATABASE", "dwd")
 
 
 def get_clickhouse_client():
@@ -41,25 +40,25 @@ class ManufacturingData(BaseModel):
     项目名称: str
     车号: str
     节车号: str
-    最早计划开始: Optional[datetime]
-    最晚计划结束: Optional[datetime]
-    进车计划开始: Optional[datetime]
-    进车实际开始: Optional[datetime]
-    Q30计划开始: Optional[datetime]
-    Q30实际开始: Optional[datetime]
-    调车计划开始: Optional[datetime]
-    调车实际开始: Optional[datetime]
-    连接计划开始: Optional[datetime]
-    连接实际开始: Optional[datetime]
-    Q40计划开始: Optional[datetime]
-    Q40实际开始: Optional[datetime]
-    发运计划开始: Optional[datetime]
-    发运实际开始: Optional[datetime]
-    组装周期天: Optional[float]
-    落车周期天: Optional[float]
-    调试周期天: Optional[float]
-    交付周期天: Optional[float]
-    整个制造周期天: Optional[float]
+    最早计划开始: datetime | None
+    最晚计划结束: datetime | None
+    进车计划开始: datetime | None
+    进车实际开始: datetime | None
+    Q30计划开始: datetime | None
+    Q30实际开始: datetime | None
+    调车计划开始: datetime | None
+    调车实际开始: datetime | None
+    连接计划开始: datetime | None
+    连接实际开始: datetime | None
+    Q40计划开始: datetime | None
+    Q40实际开始: datetime | None
+    发运计划开始: datetime | None
+    发运实际开始: datetime | None
+    组装周期天: float | None
+    落车周期天: float | None
+    调试周期天: float | None
+    交付周期天: float | None
+    整个制造周期天: float | None
 
 
 @app.get("/", response_class=FileResponse)
@@ -68,12 +67,12 @@ async def root():
 
 
 @app.get("/api/projects")
-async def get_projects():
+async def get_projects() -> list[str]:
     try:
         client = get_clickhouse_client()
         # 将项目号筛选改为项目简称
-        result = client.execute("SELECT DISTINCT `项目简称` FROM manufacturing_cycle ORDER BY `项目简称`")
-        return [row[0] for row in result]
+        result = client.query_dataframe("SELECT DISTINCT `项目简称` FROM manufacturing_cycle ORDER BY `项目简称`")
+        return [str(row['项目简称']) for _, row in result.iterrows()]
     except Exception as e:
         print(f"Error in get_projects: {e}")
         traceback.print_exc()
@@ -83,14 +82,14 @@ async def get_projects():
 
 
 @app.get("/api/cars")
-async def get_cars(project_abbr: str = Query(..., alias="project_id")):
+async def get_cars(project_abbr: str = Query(..., alias="project_id")) -> list[str]:
     try:
         client = get_clickhouse_client()
-        result = client.execute(
+        result = client.query_dataframe(
             "SELECT DISTINCT `车号` FROM manufacturing_cycle WHERE `项目简称` = %(pabbr)s ORDER BY `车号`",
             {'pabbr': project_abbr}
         )
-        return [row[0] for row in result]
+        return [str(row['车号']) for _, row in result.iterrows()]
     except Exception as e:
         print(f"Error in get_cars: {e}")
         traceback.print_exc()
@@ -103,11 +102,11 @@ async def get_cars(project_abbr: str = Query(..., alias="project_id")):
 async def get_sections(project_abbr: str = Query(..., alias="project_id"), car_id: str = Query(...)):
     try:
         client = get_clickhouse_client()
-        result = client.execute(
+        result = client.query_dataframe(
             "SELECT DISTINCT `节车号` FROM manufacturing_cycle WHERE `项目简称` = %(pabbr)s AND `车号` = %(cid)s ORDER BY `节车号`",
             {'pabbr': project_abbr, 'cid': car_id}
         )
-        return [row[0] for row in result]
+        return [str(row['车号']) for _, row in result.iterrows()]
     except Exception as e:
         print(f"Error in get_sections: {e}")
         traceback.print_exc()
@@ -124,7 +123,7 @@ async def get_data(
 ):
     try:
         client = get_clickhouse_client()
-        result = client.execute(
+        result = client.query_dataframe(
             """
             SELECT
                 `项目号`, `项目简称`, `项目名称`, `车号`, `节车号`,
@@ -142,20 +141,34 @@ async def get_data(
             """,
             {'pabbr': project_abbr, 'cid': car_id, 'sid': section_id}
         )
-        if not result:
+        if len(result) == 0:
             raise HTTPException(status_code=404, detail="未找到匹配的数据")
-        
-        row = result[0]
+
         return ManufacturingData(
-            项目号=row[0], 项目简称=row[1], 项目名称=row[2], 车号=row[3], 节车号=row[4],
-            最早计划开始=row[5], 最晚计划结束=row[6],
-            进车计划开始=row[7], 进车实际开始=row[8],
-            Q30计划开始=row[9], Q30实际开始=row[10],
-            调车计划开始=row[11], 调车实际开始=row[12],
-            连接计划开始=row[13], 连接实际开始=row[14],
-            Q40计划开始=row[15], Q40实际开始=row[16],
-            发运计划开始=row[17], 发运实际开始=row[18],
-            组装周期天=row[19], 落车周期天=row[20], 调试周期天=row[21], 交付周期天=row[22], 整个制造周期天=row[23]
+            项目号=result['项目号'][0],
+            项目简称=result['项目简称'][0],
+            项目名称=result['项目名称'][0],
+            车号=result['车号'][0],
+            节车号=result['节车号'][0],
+            最早计划开始=result['最早计划开始'][0],
+            最晚计划结束=result['最晚计划结束'][0],
+            进车计划开始=result['进车计划开始'][0],
+            进车实际开始=result['进车实际开始'][0],
+            Q30计划开始=result['Q30计划开始'][0],
+            Q30实际开始=result['Q30实际开始'][0],
+            调车计划开始=result['调车计划开始'][0],
+            调车实际开始=result['调车实际开始'][0],
+            连接计划开始=result['连接计划开始'][0],
+            连接实际开始=result['连接实际开始'][0],
+            Q40计划开始=result['Q40计划开始'][0],
+            Q40实际开始=result['Q40实际开始'][0],
+            发运计划开始=result['发运计划开始'][0],
+            发运实际开始=result['发运实际开始'][0],
+            组装周期天=result['组装周期天'][0],
+            落车周期天=result['落车周期天'][0],
+            调试周期天=result['调试周期天'][0],
+            交付周期天=result['交付周期天'][0],
+            整个制造周期天=result['整个制造周期天'][0]
         )
     except HTTPException:
         raise
@@ -172,7 +185,7 @@ async def get_yearly_data():
     try:
         client = get_clickhouse_client()
         # 修改为本年数据：最早计划开始或最晚计划结束在今年
-        result = client.execute(
+        result = client.query_dataframe(
             """
             SELECT
                 `项目号`, `项目简称`, `车号`, `节车号`,
@@ -187,16 +200,16 @@ async def get_yearly_data():
         )
         return [
             {
-                "项目号": row[0],
-                "项目简称": row[1],
-                "车号": row[2],
-                "节车号": row[3],
-                "组装周期天": row[4],
-                "落车周期天": row[5],
-                "调试周期天": row[6],
-                "交付周期天": row[7],
-                "整个制造周期天": row[8]
-            } for row in result
+                "项目号": row['项目号'],
+                "项目简称": row['项目简称'],
+                "车号": row['车号'],
+                "节车号": row['节车号'],
+                "组装周期天": row['组装周期天'],
+                "落车周期天": row['落车周期天'],
+                "调试周期天": row['调试周期天'],
+                "交付周期天": row['交付周期天'],
+                "整个制造周期天": row['整个制造周期天']
+            } for _, row in result.iterrows()
         ]
     except Exception as e:
         print(f"Error in get_yearly_data: {e}")
@@ -208,4 +221,4 @@ async def get_yearly_data():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=18000)
